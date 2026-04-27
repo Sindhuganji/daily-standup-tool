@@ -1,13 +1,27 @@
-const mongoose = require("mongoose");
+import mongoose from 'mongoose';
 
 const teamSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    // ✅ add admin since controller populates it
-    admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    admin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    members: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Team", teamSchema);
+const Team = mongoose.model("Team", teamSchema);
+
+export default Team;

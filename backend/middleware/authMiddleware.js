@@ -10,9 +10,10 @@ module.exports = (req, res, next) => {
     const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    req.user = decoded; // { id, email }
+    req.user = { id: decoded.id, email: decoded.email };
     next();
-  } catch (err) {
+  } catch (error) {
+    console.error("AUTH ERROR:", error);
     return res.status(401).json({ message: "Invalid token" });
   }
 };

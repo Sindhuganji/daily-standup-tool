@@ -1,30 +1,56 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
+import cors from 'cors';
+import dotenv from 'dotenv';
+import express from 'express';
+import mongoose from 'mongoose';
 
-const authRoutes = require("./routes/authRoutes");
-const teamRoutes = require("./routes/teamRoutes");
-const updateRoutes = require("./routes/updateRoutes");
+import authRoutes from './routes/authRoutes.js';
+import teamRoutes from './routes/teamRoutes.js';
+import updateRoutes from './routes/updateRoutes.js';
+
+dotenv.config();
 
 const app = express();
 
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => {
-    console.error("❌ MongoDB error:", err.message);
-    process.exit(1);
-  });
+app.get("/", (req, res) => {
+  res.send("API is running ✅");
+});
 
+// Invite system removed completely
 app.use("/api/auth", authRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/update", updateRoutes);
 
-app.get("/", (req, res) => res.send("API running"));
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+app.use((err, req, res, next) => {
+  console.error("[UNHANDLED ERROR]:", err);
+  res.status(500).json({ message: "Internal server error" });
+});
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server on ${PORT}`));
+
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB connected");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();

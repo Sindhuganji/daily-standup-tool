@@ -1,86 +1,121 @@
-const Team = require("../models/Team");
-const User = require("../models/User");
+import mongoose from 'mongoose';
+
+import Team from '../models/Team.js';
+import User from '../models/User.js';
 
 // POST /api/team/create
-exports.createTeam = async (req, res) => {
+export const createTeam = async (req, res) => {
   try {
     const { name } = req.body;
-    if (!name?.trim()) {
-      return res.status(400).json({ msg: "Team name required" });
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // If your Team schema has admin, keep it. If not, remove admin.
-    const payload = {
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Team name is required" });
+    }
+
+    const team = await Team.create({
       name: name.trim(),
-      members: [req.user.id],
-    };
+      admin: userId,
+      members: [userId],
+    });
 
-    if (Team.schema.path("admin")) {
-      payload.admin = req.user.id;
-    }
-
-    const team = await Team.create(payload);
-
-    // only if User schema has teamId
     if (User.schema.path("teamId")) {
-      await User.findByIdAndUpdate(req.user.id, { teamId: team._id });
+      await User.findByIdAndUpdate(userId, { teamId: team._id });
     }
 
-    console.log("[CREATE TEAM] user:", req.user.id, "team:", team._id);
-
-    return res.status(201).json(team);
-  } catch (err) {
-    console.log("[CREATE TEAM ERROR]", err);
-    return res.status(500).json({ msg: "Error creating team", error: err.message });
+    return res.status(201).json({
+      message: "Team created successfully",
+      team,
+    });
+  } catch (error) {
+    console.error("[CREATE TEAM ERROR]:", error);
+    return res.status(500).json({
+      message: "Failed to create team",
+      error: error.message,
+    });
   }
 };
 
 // POST /api/team/join
-exports.joinTeam = async (req, res) => {
+export const joinTeam = async (req, res) => {
   try {
     const { teamId } = req.body;
-    if (!teamId) {
-      return res.status(400).json({ msg: "Team ID required" });
+    const userId = req.user?.id;
+
+    // 1) validate auth + input
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
+    if (!teamId) {
+      return res.status(400).json({ message: "Team ID is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(teamId)) {
+      return res.status(400).json({ message: "Invalid Team ID format" });
+    }
+
+    // 2) find existing team (DO NOT create new one)
     const team = await Team.findById(teamId);
     if (!team) {
-      return res.status(404).json({ msg: "Team not found" });
+      return res.status(404).json({ message: "Team not found" });
     }
 
+    // 3) ensure members array exists
+    if (!Array.isArray(team.members)) {
+      team.members = [];
+    }
+
+    // 4) check already member using toString()
     const alreadyMember = team.members.some(
-      (m) => m.toString() === req.user.id.toString()
+      (memberId) => memberId.toString() === userId.toString()
     );
 
-    if (!alreadyMember) {
-      team.members.push(req.user.id);
-      await team.save();
+    if (alreadyMember) {
+      return res.status(200).json({
+        message: "User is already a member of this team",
+        team,
+      });
     }
 
+    // 5) add user to members only (DO NOT touch admin)
+    team.members.push(userId);
+
+    // 6) save team
+    await team.save();
+
+    // optional user linkage
     if (User.schema.path("teamId")) {
-      await User.findByIdAndUpdate(req.user.id, { teamId: team._id });
+      await User.findByIdAndUpdate(userId, { teamId: team._id });
     }
 
-    console.log("[JOIN TEAM] user:", req.user.id, "team:", team._id);
-
-    return res.json({ msg: "Joined team", team });
-  } catch (err) {
-    console.log("[JOIN TEAM ERROR]", err);
-    return res.status(500).json({ msg: "Error joining team", error: err.message });
+    // 7) success
+    return res.status(200).json({
+      message: "Joined team successfully",
+      team,
+    });
+  } catch (error) {
+    console.error("[JOIN TEAM ERROR]:", error);
+    return res.status(500).json({
+      message: "Failed to join team",
+      error: error.message,
+    });
   }
 };
 
 // GET /api/team/my
-exports.getMyTeams = async (req, res) => {
+export const getMyTeams = async (req, res) => {
   try {
-    console.log("[GET MY TEAMS] req.user:", req.user);
-
     const userId = req.user?.id;
+
     if (!userId) {
-      return res.status(401).json({ message: "Unauthorized: user id missing" });
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // ✅ fetch teams where logged-in user is in members
     const teams = await Team.find({
       members: { $in: [userId] },
     })
@@ -88,14 +123,12 @@ exports.getMyTeams = async (req, res) => {
       .populate("members", "name email")
       .sort({ createdAt: -1 });
 
-    console.log("[GET MY TEAMS] found:", teams.length);
-
     return res.status(200).json(teams);
-  } catch (err) {
-    console.error("[GET MY TEAMS ERROR]", err);
+  } catch (error) {
+    console.error("[GET MY TEAMS ERROR]:", error);
     return res.status(500).json({
-      message: "Error fetching teams",
-      error: err.message,
+      message: "Failed to fetch teams",
+      error: error.message,
     });
   }
 };

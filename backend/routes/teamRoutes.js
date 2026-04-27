@@ -1,10 +1,16 @@
-const express = require("express");
+import express from 'express';
+
+import {
+  createTeam,
+  getMyTeams,
+  joinTeam,
+} from '../controllers/teamController.js';
+import authMiddleware from '../middleware/authMiddleware.js';
+
 const router = express.Router();
-const authMiddleware = require("../middleware/authMiddleware");
-const { createTeam, joinTeam, getMyTeams } = require("../controllers/teamController");
 
 router.post("/create", authMiddleware, createTeam);
 router.post("/join", authMiddleware, joinTeam);
 router.get("/my", authMiddleware, getMyTeams);
 
-module.exports = router;
+export default router;
