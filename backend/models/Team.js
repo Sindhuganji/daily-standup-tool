@@ -1,8 +1,10 @@
- const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
 const teamSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
+    // ✅ add admin since controller populates it
+    admin: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
