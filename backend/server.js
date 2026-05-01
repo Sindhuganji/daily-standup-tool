@@ -4,6 +4,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 
 import authRoutes from './routes/authRoutes.js';
+import managerRoutes from './routes/managerRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import updateRoutes from './routes/updateRoutes.js';
 
@@ -27,6 +28,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/team", teamRoutes);
 app.use("/api/update", updateRoutes);
+app.use("/api/manager", managerRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

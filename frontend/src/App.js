@@ -8,6 +8,7 @@ import {
 import Dashboard from './components/Dashboard';
 import DashboardLayout from './components/DashboardLayout';
 import Login from './components/Login';
+import ManagerDashboard from './components/ManagerDashboard';
 import MyTeams from './components/MyTeams';
 import ProtectedRoute from './components/ProtectedRoute';
 import Register from './components/Register';
@@ -17,9 +18,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+
+        {/* PUBLIC ROUTES */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        {/* USER DASHBOARD */}
         <Route
           path="/dashboard/*"
           element={
@@ -33,7 +37,19 @@ export default function App() {
           <Route path="updates" element={<Updates />} />
         </Route>
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* MANAGER DASHBOARD */}
+        <Route
+          path="/manager-dashboard"
+          element={
+            <ProtectedRoute>
+              <ManagerDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ FIXED DEFAULT REDIRECT */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
       </Routes>
     </BrowserRouter>
   );

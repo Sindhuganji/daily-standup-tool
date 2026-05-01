@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+import { jwtDecode } from 'jwt-decode'; // ✅ added
 import { useNavigate } from 'react-router-dom';
 
 import api from '../services/api';
@@ -23,9 +24,28 @@ function Login() {
 
     try {
       setLoading(true);
+
       const { data } = await api.post("/auth/login", form);
+
+      // ✅ store token
       localStorage.setItem("token", data.token);
-      navigate("/dashboard");
+
+      // ✅ decode role from token (NEW LOGIC)
+      let role = "member";
+      try {
+        const decoded = jwtDecode(data.token);
+        role = decoded?.role || "member";
+      } catch (err) {
+        console.log("Token decode error", err);
+      }
+
+      // ✅ role-based navigation
+      if (role === "manager") {
+        navigate("/manager-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
+
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {
@@ -35,6 +55,7 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-indigo-950 to-purple-950 text-white flex">
+      
       <div className="hidden lg:flex w-1/2 items-center justify-center p-12 border-r border-white/10 bg-white/5 backdrop-blur-xl">
         <div className="max-w-md">
           <h1 className="text-5xl font-black tracking-tight mb-5">
